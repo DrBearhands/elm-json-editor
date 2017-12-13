@@ -8,6 +8,6 @@ type JsonValue
   | JsonInt Int
   | JsonFloat Float
   | JsonArray (Array JsonValue)
-  | JsonObject (Array (String, JsonValue))
+  | JsonObject (Dict String JsonValue)
   | JsonBool Bool
   | JsonNull

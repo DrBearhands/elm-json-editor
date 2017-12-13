@@ -1,24 +1,57 @@
-module JsonValue.View exposing (viewJson, viewEditJson)
+module JsonValue.View exposing (JsonValueViewer(..), viewJson, viewEditJson, fromJsonValue, toJsonValue)
 
 import JsonValue exposing (..)
 import Array exposing (Array)
+import Dict
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 
-viewJson : JsonValue -> Html msg
+type JsonValueViewer
+  = JsonVString String
+  | JsonVInt Int
+  | JsonVFloat Float
+  | JsonVArray (Array JsonValueViewer)
+  | JsonVObject (Array (String, JsonValueViewer))
+  | JsonVBool Bool
+  | JsonVNull
+
+fromJsonValue : JsonValue -> JsonValueViewer
+fromJsonValue value =
+  case value of
+    JsonString str -> JsonVString str
+    JsonInt int -> JsonVInt int
+    JsonFloat float -> JsonVFloat float
+    JsonArray array -> JsonVArray <| Array.map fromJsonValue array
+    JsonObject dict -> JsonVObject <| Array.fromList <| Dict.toList <| Dict.map (\_ -> fromJsonValue) dict
+    JsonBool bool -> JsonVBool bool
+    JsonNull -> JsonVNull
+
+toJsonValue : JsonValueViewer -> JsonValue
+toJsonValue viewer =
+  case viewer of
+    JsonVString str -> JsonString str
+    JsonVInt int -> JsonInt int
+    JsonVFloat float -> JsonFloat float
+    JsonVArray array -> JsonArray <| Array.map toJsonValue array
+    JsonVObject dict -> JsonObject <| Dict.fromList <| Array.toList <| Array.map (\(key, value) -> (key, toJsonValue value)) dict
+    JsonVBool bool -> JsonBool bool
+    JsonVNull -> JsonNull
+
+
+viewJson : JsonValueViewer -> Html msg
 viewJson jsonValue =
   case jsonValue of
-    JsonString str -> text str
-    JsonInt int -> text <| toString int
-    JsonFloat float -> text <| toString float
-    JsonArray list ->
+    JsonVString str -> text str
+    JsonVInt int -> text <| toString int
+    JsonVFloat float -> text <| toString float
+    JsonVArray list ->
       div []
         [ text "["
         , ul [] <| Array.toList <| Array.map (\jv -> li [] [viewJson jv]) list
         , text "]"
         ]
-    JsonObject obj ->
+    JsonVObject obj ->
       div []
         [ text "{"
         , ul []
@@ -32,13 +65,13 @@ viewJson jsonValue =
             ( Array.toList obj )
         , text "}"
         ]
-    JsonBool bool -> text <| toString bool
-    JsonNull -> text "null"
+    JsonVBool bool -> text <| toString bool
+    JsonVNull -> text "null"
 
-makeNullButton : Html JsonValue
+makeNullButton : Html JsonValueViewer
 makeNullButton =
   button
-    [ onClick JsonNull ]
+    [ onClick JsonVNull ]
     [ text "X" ]
 
 inlineStyle = style [("display", "inline-block")]
@@ -49,43 +82,44 @@ arrayDelete ii arr =
     (Array.slice 0 ii arr)
     (Array.slice (ii+1) (Array.length arr) arr)
 
-viewEditJson : JsonValue -> Html JsonValue
+viewEditJson : JsonValueViewer -> Html JsonValueViewer
 viewEditJson jsonValue =
   case jsonValue of
-    JsonString str ->
+    JsonVString str ->
       div [inlineStyle]
-        [ input [type_ "text", value str, onInput (\newstring -> JsonString newstring)] []
+        [ input [type_ "text", value str, onInput (\newstring -> JsonVString newstring)] []
         , makeNullButton
         ]
-    JsonInt int ->
+    JsonVInt int ->
       div [inlineStyle]
-        [ input [type_ "number", value (toString int), step "1", onInput (\newIntStr -> JsonInt <| Result.withDefault int <| String.toInt newIntStr) ] []
+        [ input [type_ "number", value (toString int), step "1", onInput (\newIntStr -> JsonVInt <| Result.withDefault int <| String.toInt newIntStr) ] []
         , makeNullButton
         ]
-    JsonFloat float ->
+    JsonVFloat float ->
       div [inlineStyle]
-        [ input [type_ "number", value (toString float), onInput (\newIntStr -> JsonFloat <| Result.withDefault float <| String.toFloat newIntStr) ] []
+        [ input [type_ "number", value (toString float), step "any", onInput (\newIntStr -> JsonVFloat <| Result.withDefault float <| String.toFloat newIntStr) ] []
         , makeNullButton
         ]
-    JsonArray array ->
+    JsonVArray array ->
       div [inlineStyle]
         [ text "["
         , ul [] <| List.concat
           [ Array.toList <| Array.indexedMap
             ( \ii jv ->
               li []
-                [ Html.map (\newJson -> JsonArray (Array.set ii newJson array) ) (viewEditJson jv)
-                , button [onClick <| JsonArray <| arrayDelete ii array] [text "Delete field"]
+                [ Html.map (\newJson -> JsonVArray (Array.set ii newJson array) ) (viewEditJson jv)
+                , button [onClick <| JsonVArray <| arrayDelete ii array] [text "Delete field"]
                 ]
             ) array
           , [ li []
-              [ button [onClick <| JsonArray <| Array.push JsonNull array] [text "add entry"]
+              [ button [onClick <| JsonVArray <| Array.push JsonVNull array] [text "add entry"]
               ]
             ]
           ]
         , text "]"
+        , makeNullButton
         ]
-    JsonObject obj ->
+    JsonVObject obj ->
       div [inlineStyle]
         [ text "{"
         , table [style [("margin-left", "30px")] ]
@@ -97,31 +131,32 @@ viewEditJson jsonValue =
                     [ input
                       [ type_ "text"
                       , value key
-                      , onInput (\newKey -> JsonObject <| Array.set ii (newKey, val) obj)
+                      , onInput (\newKey -> JsonVObject <| Array.set ii (newKey, val) obj)
                       ]
                       []
                     ] --text <| key ++ ": "
-                  , td [] [Html.map (\newVal -> JsonObject (Array.set ii (key, newVal) obj) ) (viewEditJson val)]
-                  , td [] [button [onClick <| JsonObject <| arrayDelete ii obj] [text "Delete field"]]
+                  , td [] [Html.map (\newVal -> JsonVObject (Array.set ii (key, newVal) obj) ) (viewEditJson val)]
+                  , td [] [button [onClick <| JsonVObject <| arrayDelete ii obj] [text "Delete field"]]
                   ]
                )
                obj
-            , [ tr [] [td [] [button [onClick <| JsonObject <| Array.push ("", JsonNull) obj] [text "add field"]]] ]
+            , [ tr [] [td [] [button [onClick <| JsonVObject <| Array.push ("", JsonVNull) obj] [text "add field"]]] ]
             ]
           ]
         , text "}"
+        , makeNullButton
         ]
-    JsonBool bool ->
+    JsonVBool bool ->
       div [inlineStyle]
         [ text <| toString bool
         , makeNullButton
         ]
-    JsonNull ->
+    JsonVNull ->
       div []
         [ text "null"
-        , button [onClick <| JsonString ""] [text "make string"]
-        , button [onClick <| JsonInt 0] [text "make int"]
-        , button [onClick <| JsonFloat 0] [text "make float"]
-        , button [onClick <| JsonObject Array.empty] [text "make object"]
-        , button [onClick <| JsonArray Array.empty] [text "make array"]
+        , button [onClick <| JsonVString ""] [text "make string"]
+        , button [onClick <| JsonVInt 0] [text "make int"]
+        , button [onClick <| JsonVFloat 0] [text "make float"]
+        , button [onClick <| JsonVObject Array.empty] [text "make object"]
+        , button [onClick <| JsonVArray Array.empty] [text "make array"]
         ]

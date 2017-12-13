@@ -29,7 +29,7 @@ jsonArray : Decoder JsonValue
 jsonArray = map JsonArray <| array <| Decode.lazy (\_ -> jsonValue)
 
 jsonObject : Decoder JsonValue
-jsonObject = map (JsonObject << Array.fromList) <| keyValuePairs <| Decode.lazy (\_ -> jsonValue)
+jsonObject = map JsonObject <| dict <| Decode.lazy (\_ -> jsonValue)
 
 jsonBool : Decoder JsonValue
 jsonBool = map JsonBool bool
