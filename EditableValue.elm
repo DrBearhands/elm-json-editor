@@ -1,5 +1,24 @@
 module EditableValue exposing (EditableValue, Config, config, encode, decoder, view, editableView)
 
+{-| This package allows editing JSON files with unknown structure in an Elm view.
+This might be necessary e.g. for managing a noSQL server with varying document structures.
+
+# Types
+@docs EditableValue
+@docs Config
+
+# Encoding/Decoding
+@docs decoder
+@docs encode
+
+# Config
+@docs config
+
+# Views
+@docs view
+@docs editableView
+-}
+
 import Dict exposing (Dict)
 import Array exposing (Array)
 import Json.Encode as Encode exposing(Value)
@@ -8,7 +27,8 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 
-
+{-| Opaque type holding the state of the JSON
+-}
 type EditableValue
   = JsonString String
   | JsonInt Int
@@ -18,12 +38,18 @@ type EditableValue
   | JsonBool Bool
   | JsonNull
 
+{-| Opaque type used for configuring the view functions
+-}
 type Config =
   Config {}
 
+{-| Basic constructor for Config
+-}
 config : Config
 config = Config {}
 
+{-|
+-}
 encode : EditableValue -> Value
 encode value =
   case value of
@@ -35,6 +61,8 @@ encode value =
     JsonBool b -> Encode.bool b
     JsonNull -> Encode.null
 
+{-|
+-}
 decoder : Decoder EditableValue
 decoder =
   let
@@ -55,6 +83,8 @@ decoder =
       , Decode.lazy (\_ -> jsonObject)
       ]
 
+{-| Basic view function, does not allow editing the JSON
+-}
 view : Config -> EditableValue -> Html msg
 view config editableValue =
   case editableValue of
@@ -84,6 +114,20 @@ view config editableValue =
     JsonBool bool -> text <| toString bool
     JsonNull -> text "null"
 
+{-| View function that allows editing the JSON. The EditableValue cmd produced by this HTML should be used as the new EditableValue.
+E.g.
+```
+type Msg
+  = SetEditableValue EditableValue
+  ...
+
+update : Msg -> Model -> (Model, Cmd Msg)
+update msg model =
+  case msg of
+    SetEditableValue newViewer -> ({model | editableValue = newViewer}, Cmd.none)
+    ...
+```
+-}
 editableView : Config -> EditableValue -> Html EditableValue
 editableView config editableValue =
   let
