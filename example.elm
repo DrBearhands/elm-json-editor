@@ -10,7 +10,8 @@ import Html exposing (..)
 requestAdvertList : ((Result Http.Error JsonValue) -> msg) -> Cmd msg
 requestAdvertList msg =
   let
-    url = "https://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag=red-flag"
+    url = "http://echo.jsontest.com/key/value/otherkey/othervalue"
+    --url = "https://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag=red-flag"
     --url = "https://my-json-server.typicode.com/typicode/demo/posts/1"
     request = Http.get url Decode.jsonValue
   in Http.send msg request
