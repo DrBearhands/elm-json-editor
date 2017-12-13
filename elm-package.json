@@ -1,7 +1,7 @@
 {
     "version": "1.0.0",
     "summary": "A package providing a view for editing JSON documents with unknown structure",
-    "repository": "https://gitlab.com/DrBearhands/elm-json-editor",
+    "repository": "https://gitlab.com/DrBearhands/elm-json-editor.git",
     "license": "BSD3",
     "source-directories": [
         "."
