@@ -1,4 +1,4 @@
-module EditableValue exposing (EditableValue, Config, config, encode, decoder, view, editableView)
+module EditableValue exposing (EditableValue, Config, null, config, encode, decoder, view, editableView)
 
 {-| This package allows editing JSON files with unknown structure in an Elm view.
 This might be necessary e.g. for managing a noSQL server with varying document structures.
@@ -6,6 +6,9 @@ This might be necessary e.g. for managing a noSQL server with varying document s
 # Types
 @docs EditableValue
 @docs Config
+
+# Initialization
+@docs null
 
 # Encoding/Decoding
 @docs decoder
@@ -37,6 +40,12 @@ type EditableValue
   | JsonObject (Array (String, EditableValue))
   | JsonBool Bool
   | JsonNull
+
+{-|
+Constructs a 'null' EditableValue
+-}
+null : EditableValue
+null = JsonNull
 
 {-| Opaque type used for configuring the view functions
 -}
@@ -100,15 +109,20 @@ view config editableValue =
     JsonObject obj ->
       div []
         [ text "{"
-        , ul []
-          <| List.map
-            ( \(key, val) ->
-               li []
-                [ text <| key ++ ": "
-                , view config val
-                ]
-            )
-            ( Array.toList obj )
+        , table [style [("margin-left", "30px")] ]
+          [ tbody [] <| List.concat
+            [ Array.toList <| Array.indexedMap
+               ( \ii (key, σ) ->
+                tr []
+                  [ td [style [("vertical-align", "top")]]
+                    [ text <| key ++ ": "
+                    , view config σ
+                    ]
+                  ]
+               )
+               obj
+            ]
+          ]
         , text "}"
         ]
     JsonBool bool -> text <| toString bool

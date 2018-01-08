@@ -1,18 +1,16 @@
+module Main exposing (main)
 
-import EditableValue exposing (..)
+import EditableValue exposing (EditableValue)
 
-import Http
+import Json.Encode exposing (..)
+import Json.Decode exposing (decodeString)
 import Html exposing (..)
 
 type alias Model =
-  { editableValue : Maybe EditableValue
+  { editableValue : EditableValue
   }
 
-type Msg
-  = ReceivedJson (Result Http.Error EditableValue)
-  | SetEditableValue EditableValue
-
-main : Program Never Model Msg
+main : Program Never Model EditableValue
 main = Html.program
   { init = init
   , view = view
@@ -20,35 +18,35 @@ main = Html.program
   , subscriptions = subscriptions
   }
 
-init : (Model, Cmd Msg)
+init : (Model, Cmd EditableValue)
 init =
   let
-    url = "http://echo.jsontest.com/key/value/otherkey/othervalue"
-    request = Http.get url decoder
-    requestAdvertList msg = Http.send msg request
+    jsonString = "{\"foo\": \"foo\", \"bar\": {\"baz\":[1,2,3,4]}}"
+    editableValue =
+    case decodeString EditableValue.decoder jsonString of
+      Ok editableValue -> editableValue
+      Err err -> EditableValue.null
   in
-    ( { editableValue = Nothing }
-    , requestAdvertList ReceivedJson
+    ( { editableValue = editableValue }
+    , Cmd.none
     )
 
-update : Msg -> Model -> (Model, Cmd Msg)
-update msg model =
-  case msg of
-    ReceivedJson (Ok editableValue) -> ({model | editableValue = Just <| editableValue}, Cmd.none)
-    ReceivedJson (Err err) -> Debug.crash <| toString err
-    SetEditableValue newViewer -> ({model | editableValue = Just newViewer}, Cmd.none)
+update : EditableValue -> Model -> (Model, Cmd EditableValue)
+update newValue model =
+  ({model | editableValue = newValue}, Cmd.none)
 
-view : Model -> Html Msg
+view : Model -> Html EditableValue
 view model =
-  case model.editableValue of
-    Just editableValue ->
-      div []
-        [ Html.map SetEditableValue (editableView config editableValue)
-        , br [] []
-        , br [] []
-        , text <| toString <| encode editableValue
-        ]
-    Nothing -> div [] []
+  let
+    editableValue = model.editableValue
+  in
+    div []
+      [ EditableValue.view EditableValue.config editableValue
+      , br [] []
+      , br [] []
+      , text <| toString <| EditableValue.encode editableValue
+      ]
 
-subscriptions : Model -> Sub Msg
+
+subscriptions : Model -> Sub EditableValue
 subscriptions model = Sub.none
