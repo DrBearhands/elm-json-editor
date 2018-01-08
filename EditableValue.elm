@@ -79,6 +79,7 @@ decoder =
     jsonString = Decode.map JsonString Decode.string
     jsonInt = Decode.map JsonInt Decode.int
     jsonFloat = Decode.map JsonFloat Decode.float
+    jsonNull = Decode.null JsonNull
     jsonArray = Decode.map JsonArray <| Decode.array <| Decode.lazy (\_ -> decoder)
     jsonObject = Decode.map (JsonObject << Array.fromList) <| Decode.keyValuePairs <| Decode.lazy (\_ -> decoder)
     jsonBool = Decode.map JsonBool Decode.bool
@@ -88,6 +89,7 @@ decoder =
       , jsonFloat
       , jsonBool
       , jsonString
+      , jsonNull
       , Decode.lazy (\_ -> jsonArray)
       , Decode.lazy (\_ -> jsonObject)
       ]

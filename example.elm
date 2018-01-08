@@ -21,7 +21,7 @@ main = Html.program
 init : (Model, Cmd EditableValue)
 init =
   let
-    jsonString = "{\"foo\": \"foo\", \"bar\": {\"baz\":[1,2,3,4]}}"
+    jsonString = "{\"foo\": null, \"bar\": {\"baz\":[1,2,3,4]}}"
     editableValue =
     case decodeString EditableValue.decoder jsonString of
       Ok editableValue -> editableValue
